@@ -2,51 +2,47 @@
 package main
 
 import (
+	"errors"
+	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/cupcake/rdb"
-	"github.com/cupcake/rdb/nopdecoder"
+	"github.com/grindrllc/redis-metrics/decoder"
 )
 
-type decoder struct {
-	db int
-	i  int
-	nopdecoder.NopDecoder
-}
+const (
+	defaultOutFile = "rdbout"
+	inFileUsage    = "Input file for redis dump"
+	outFileUsage   = "Output file for redis dump"
+)
 
-func (p *decoder) StartDatabase(n int) {
-	p.db = n
-}
+var (
+	ErrNoInputFile = errors.New("ERR: Need to specify an input file with the -input or -i flags.")
+)
 
-func (p *decoder) Set(key, value []byte, expiry int64) {
-	fmt.Printf("db=%d %q -> %q\n", p.db, key, value)
-}
+// -i in file, -o outfile, if not, default
+func main() {
+	// Deal with args
+	in := flag.String("input", "", inFileUsage)
+	out := flag.String("output", defaultOutFile, outFileUsage)
+	flag.StringVar(in, "i", "", inFileUsage)
+	flag.StringVar(out, "o", defaultOutFile, outFileUsage)
+	flag.Parse()
 
-func (p *decoder) Hset(key, field, value []byte) {
-	fmt.Printf("db=%d %q . %q -> %q\n", p.db, key, field, value)
-}
-
-func (p *decoder) Sadd(key, member []byte) {
-	fmt.Printf("db=%d %q { %q }\n", p.db, key, member)
-}
-
-func (p *decoder) StartList(key []byte, length, expiry int64) {
-	p.i = 0
-}
-
-func (p *decoder) Rpush(key, value []byte) {
-	fmt.Printf("db=%d %q[%d] -> %q\n", p.db, key, p.i, value)
-	p.i++
-}
-
-func (p *decoder) StartZSet(key []byte, cardinality, expiry int64) {
-	p.i = 0
-}
-
-func (p *decoder) Zadd(key []byte, score float64, member []byte) {
-	fmt.Printf("db=%d %q[%d] -> {%q, score=%g}\n", p.db, key, p.i, member, score)
-	p.i++
+	// If in is blank or empty, error early
+	if *in == "" || in == nil {
+		maybeFatal(ErrNoInputFile)
+	}
+	absOut, oerr := filepath.Abs(*out)
+	maybeFatal(oerr)
+	outFile, ferr := createFile(absOut)
+	maybeFatal(ferr)
+	f, err := os.Open(*in)
+	maybeFatal(err)
+	err = rdb.Decode(f, &decoder.Decoder{OutFile: outFile})
+	maybeFatal(err)
 }
 
 func maybeFatal(err error) {
@@ -56,9 +52,10 @@ func maybeFatal(err error) {
 	}
 }
 
-func main() {
-	f, err := os.Open(os.Args[1])
-	maybeFatal(err)
-	err = rdb.Decode(f, &decoder{})
-	maybeFatal(err)
+func createFile(filename string) (*os.File, error) {
+	file, err := os.Create(filename)
+	if os.IsExist(err) {
+		file, err = os.OpenFile(filename, os.O_RDWR|os.O_APPEND, 0666)
+	}
+	return file, err
 }
