@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	defaultOutFile = "rdbout"
+	defaultOutfile = "rdbout"
 	inFileUsage    = "Input file for redis dump"
 	outFileUsage   = "Output file for redis dump"
 )
@@ -26,9 +26,9 @@ var (
 func main() {
 	// Deal with args
 	in := flag.String("input", "", inFileUsage)
-	out := flag.String("output", defaultOutFile, outFileUsage)
+	out := flag.String("output", defaultOutfile, outFileUsage)
 	flag.StringVar(in, "i", "", inFileUsage)
-	flag.StringVar(out, "o", defaultOutFile, outFileUsage)
+	flag.StringVar(out, "o", defaultOutfile, outFileUsage)
 	flag.Parse()
 
 	// If in is blank or empty, error early
@@ -41,7 +41,7 @@ func main() {
 	maybeFatal(ferr)
 	f, err := os.Open(*in)
 	maybeFatal(err)
-	err = rdb.Decode(f, &decoder.Decoder{OutFile: outFile})
+	err = rdb.Decode(f, &decoder.Decoder{Outfile: outFile})
 	maybeFatal(err)
 }
 
@@ -53,9 +53,6 @@ func maybeFatal(err error) {
 }
 
 func createFile(filename string) (*os.File, error) {
-	file, err := os.Create(filename)
-	if os.IsExist(err) {
-		file, err = os.OpenFile(filename, os.O_RDWR|os.O_APPEND, 0666)
-	}
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
 	return file, err
 }
