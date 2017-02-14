@@ -2,12 +2,15 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -18,6 +21,7 @@ import (
 )
 
 const (
+	RdbExt         = ".rdb"
 	defaultOutFile = "rdbout"
 	defaultKeyFile = "keys.yml"
 	inFileUsage    = "Input file for redis dump"
@@ -49,18 +53,34 @@ func main() {
 	outFile, ferr := createFile(absOut)
 	defer outFile.Close()
 	maybeFatal(ferr)
-	f, err := os.Open(*in)
-	defer f.Close()
-	maybeFatal(err)
 
-	// Get keys to match
-	// matchKeys, kerr := getMatchKeys(*keys)
-	// maybeFatal(kerr)
+	f := getInputFiles(filepath.Dir(*in))
 
 	// Decode
 	r := metrics.NewRegistry()
-	err = rdb.Decode(f, &decoder.Decoder{OutFile: outFile, MetricsRegistry: &r})
+	err := rdb.Decode(f, &decoder.Decoder{OutFile: outFile, MetricsRegistry: &r})
 	maybeFatal(err)
+}
+
+func getInputFiles(dir string) io.Reader {
+	files := concatFiles(dir)
+	return bytes.NewBuffer(files)
+}
+
+func concatFiles(dir string) []byte {
+	var files []byte
+	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() && strings.HasSuffix(info.Name(), RdbExt) {
+			fmt.Println("Concating path: %v\n", path)
+			b, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			files = append(files, b...)
+		}
+		return nil
+	})
+	return files
 }
 
 func maybeFatal(err error) {
