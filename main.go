@@ -98,8 +98,8 @@ func maybeFatal(err error) {
 
 // createFile creates the file - if exists, it'll delete it
 func createFile(filename string) (*os.File, error) {
-	if _, oerr := os.Stat(filename); oerr != nil {
-		fmt.Prinf("%s exists. Deleting and overwriting...\n", filename)
+	if _, oerr := os.Stat(filename); oerr == nil {
+		fmt.Printf("%s exists. Deleting and overwriting...\n", filename)
 		os.Remove(filename)
 	}
 	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
