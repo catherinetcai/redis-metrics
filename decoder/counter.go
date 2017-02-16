@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// ** THIS IS NOW DEPRECRATED, WE CAN DUMP THIS PROBABLY **
 type Counters []*Counter
 
 // Finds or creates a counter to the key and increment
