@@ -75,7 +75,7 @@ func (p *Decoder) EndRDB() {
 		case metrics.Counter:
 			p.OutFile.WriteString(fmt.Sprintf("%s - %v\n", name, iface.(metrics.Counter).Count()))
 		case metrics.Histogram:
-			p.OutFile.WriteString(fmt.Sprintf("%s - average - %v, standard deviation - %v, variance - %v", name, iface.(metrics.Histogram).Mean(), iface.(metrics.Histogram).StdDev(), iface.(metrics.Histogram).Variance()))
+			p.OutFile.WriteString(fmt.Sprintf("%s - average - %v, standard deviation - %v, variance - %v\n", name, iface.(metrics.Histogram).Mean(), iface.(metrics.Histogram).StdDev(), iface.(metrics.Histogram).Variance()))
 		default:
 			fmt.Printf("I have no idea what this is, key name: %s\n", name)
 		}
