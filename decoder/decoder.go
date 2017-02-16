@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/cupcake/rdb/nopdecoder"
-	"github.com/davecgh/go-spew/spew"
 	metrics "github.com/rcrowley/go-metrics"
 )
 
@@ -71,5 +70,15 @@ func (p *Decoder) Zadd(key []byte, score float64, member []byte) {
 
 func (p *Decoder) EndRDB() {
 	fmt.Println("Finished parsing through keys... writing to file now...")
-	spew.Dump(p.MetricsRegistry)
+	//spew.Dump(p.MetricsRegistry)
+	(*p.MetricsRegistry).Each(func(name string, iface interface{}) {
+		switch iface.(type) {
+		case metrics.Counter:
+			p.OutFile.WriteString(fmt.Sprintf("%s - %v\n", name, iface.(metrics.Counter).Count()))
+		case metrics.Histogram:
+			p.OutFile.WriteString(fmt.Sprintf("Average of %s - %v, standard deviation - %v, variance - %v", name, iface.(metrics.Histogram).Mean(), iface.(metrics.Histogram).StdDev(), iface.(metrics.Histogram).Variance()))
+		default:
+			fmt.Printf("I have no idea what this is, key name: %s\n", name)
+		}
+	})
 }

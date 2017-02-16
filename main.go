@@ -21,12 +21,15 @@ import (
 )
 
 const (
-	RdbExt         = ".rdb"
+	// Files and extension defaults
 	defaultOutFile = "rdbout"
 	defaultKeyFile = "keys.yml"
-	inFileUsage    = "Input file for redis dump"
-	outFileUsage   = "Output file for redis dump"
-	keyFileUsage   = "File with keys matching for redis dump"
+	RdbExt         = ".rdb"
+
+	// Flag descriptions
+	inFileUsage  = "Input file for redis dump"
+	keyFileUsage = "File with keys matching for redis dump"
+	outFileUsage = "Output file for redis dump"
 )
 
 var (
@@ -62,16 +65,18 @@ func main() {
 	maybeFatal(err)
 }
 
+// getInputFiles grabs a directory and globs all the files
 func getInputFiles(dir string) io.Reader {
 	files := concatFiles(dir)
 	return bytes.NewBuffer(files)
 }
 
+// concatFiles grabs all .rdb extensions and concats them
 func concatFiles(dir string) []byte {
 	var files []byte
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() && strings.HasSuffix(info.Name(), RdbExt) {
-			fmt.Println("Concating path: %v\n", path)
+			fmt.Printf("Concating path: %v\n", path)
 			b, err := ioutil.ReadFile(path)
 			if err != nil {
 				return err
@@ -83,6 +88,7 @@ func concatFiles(dir string) []byte {
 	return files
 }
 
+// mayabeFatal - Is it fatal? Who knows!
 func maybeFatal(err error) {
 	if err != nil {
 		fmt.Printf("Fatal error: %s\n", err)
@@ -90,11 +96,17 @@ func maybeFatal(err error) {
 	}
 }
 
+// createFile creates the file - if exists, it'll delete it
 func createFile(filename string) (*os.File, error) {
+	if _, oerr := os.Stat(filename); oerr != nil {
+		fmt.Prinf("%s exists. Deleting and overwriting...\n", filename)
+		os.Remove(filename)
+	}
 	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
 	return file, err
 }
 
+// NOT YET IMPLEMENTED - this will be for getting the keys that we want to specifically pull out
 func getMatchKeys(filename string) (decoder.Keys, error) {
 	if filename == "" {
 		fmt.Printf("No match keys set!")
